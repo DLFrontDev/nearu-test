@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "deploy:test": "vue-tsc -b && vite build && ntl deploy",
+    "deploy:prd": "vue-tsc -b && vite build && ntl deploy --prod",
     "preview": "vite preview"
   },
   "dependencies": {
