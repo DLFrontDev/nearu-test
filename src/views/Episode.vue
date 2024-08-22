@@ -6,33 +6,41 @@
         >Return</RouterLink
       >
     </div>
-    <div class="episode-info-container">
-      <div class="episode-image">
-        <picture v-if="activeEpisode.image">
-          <img :src="activeEpisode.image" />
-        </picture>
-        <p class="missing-image" v-else>Missing image</p>
+    <Transition name="fade" mode="out-in">
+      <div class="loading-container" v-if="loading">
+        <Spinner />
       </div>
-      <div class="episode-title">
-        <h1>{{ activeEpisode.name }}</h1>
+      <div class="episode-info-container" v-else>
+        <div class="episode-image">
+          <picture v-if="activeEpisode.image">
+            <img :src="activeEpisode.image" />
+          </picture>
+          <p class="missing-image" v-else>Missing image</p>
+        </div>
+        <div class="episode-title">
+          <h1>{{ activeEpisode.name }}</h1>
+        </div>
+        <div class="episode-info">
+          <p>{{ activeEpisode.runtime }} minutes</p>
+          <p>Aired {{ activeEpisode.airdate }}</p>
+          <div v-html="activeEpisode.summary" />
+        </div>
       </div>
-      <div class="episode-info">
-        <p>{{ activeEpisode.runtime }} minutes</p>
-        <p>Aired {{ activeEpisode.airdate }}</p>
-        <div v-html="activeEpisode.summary" />
-      </div>
-    </div>
+    </Transition>
   </ContentContainer>
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeMount } from "vue";
+import { computed, ref, onBeforeMount } from "vue";
 import { useRoute } from "vue-router";
 import { useShowStore } from "@/store";
 import ContentContainer from "@/components/ContentContainer.vue";
+import Spinner from "@/components/Spinner.vue";
 
 const route = useRoute();
 const store = useShowStore();
+
+const loading = ref(false);
 
 const episodeId = parseInt(
   typeof route.params.episodeId == "string"
@@ -42,10 +50,19 @@ const episodeId = parseInt(
 
 const activeEpisode = computed(() => store.getEpisode(episodeId));
 
-onBeforeMount(async () => {
+const loadEpisode = async () => {
+  // Check if episode exists before requesting
   if (!store.getEpisode(episodeId)) {
+    loading.value = true;
+
     await store.getEpisodeData(episodeId);
+
+    loading.value = false;
   }
+};
+
+onBeforeMount(() => {
+  loadEpisode();
 });
 </script>
 
@@ -78,6 +95,13 @@ onBeforeMount(async () => {
         color: $color-blue;
       }
     }
+  }
+
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
   }
 
   .episode-info-container {

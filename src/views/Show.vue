@@ -114,6 +114,7 @@ const activeEpisodeList = computed(() =>
 );
 
 const loadShow = async () => {
+  // Check if show exists before requesting
   if (!store.getShow(showId.value)) {
     loading.value.show = true;
 
@@ -124,6 +125,7 @@ const loadShow = async () => {
 
   const show = store.shows.find((s) => s.id == showId.value);
 
+  // Select season from query when returning from episode
   selectedSeason.value = route.query.season
     ? show?.seasons.find(
         (s) => s.number == parseInt(route.query.season as string)
@@ -131,15 +133,8 @@ const loadShow = async () => {
     : show?.seasons[0].id;
 };
 
-onBeforeMount(() => {
-  loadShow();
-});
-
-watch(showId, () => {
-  loadShow();
-});
-
-watch(selectedSeason, () => {
+const loadSeason = () => {
+  // Check if season exists before requesting
   if (selectedSeason.value && !activeSeason.value?.episodes.length) {
     loading.value.season = true;
 
@@ -147,6 +142,19 @@ watch(selectedSeason, () => {
       loading.value.season = false;
     });
   }
+};
+
+onBeforeMount(() => {
+  loadShow();
+});
+
+// Required for show to show navigation
+watch(showId, () => {
+  loadShow();
+});
+
+watch(selectedSeason, () => {
+  loadSeason();
 });
 </script>
 

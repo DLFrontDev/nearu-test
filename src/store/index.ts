@@ -2,30 +2,7 @@ import { Episode, EpisodeApiData } from "@/types/Episode";
 import { Season } from "@/types/Season";
 import { Show, ShowApiData } from "@/types/Show";
 import { createPinia, defineStore } from "pinia";
-import { computed, Ref, ref } from "vue";
-import { useRoute } from "vue-router";
-
-const getTypes = (obj: any) =>
-  Object.entries(obj)
-    .map(([p, v]): string => {
-      switch (typeof v) {
-        case "object":
-          if (v) {
-            return Array.isArray(v)
-              ? `${p}: 
-            ${getTypes(v[0])}[]`
-              : `${p}: {
-            ${getTypes(v)}
-          }`;
-          } else {
-            return `${p}: ${v}`;
-          }
-
-        default:
-          return `${p}: ${typeof v}`;
-      }
-    })
-    .join("; ");
+import { Ref, ref } from "vue";
 
 export const useShowStore = defineStore("show", () => {
   const shows: Ref<Show[]> = ref([]);
