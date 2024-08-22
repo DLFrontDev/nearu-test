@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "deploy:test": "vue-tsc -b && vite build && ntl deploy",
-    "deploy:prd": "vue-tsc -b && vite build && ntl deploy --prod",
-    "preview": "vite preview"
+    "deploy:preview": "vue-tsc -b && vite build && ntl deploy",
+    "deploy:prd": "vue-tsc -b && vite build && ntl deploy --prod"
   },
   "dependencies": {
     "pinia": "^2.2.2",
