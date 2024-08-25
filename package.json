@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "vitest",
     "deploy:preview": "vue-tsc -b && vite build && ntl deploy",
     "deploy:prd": "vue-tsc -b && vite build && ntl deploy --prod"
   },
@@ -14,11 +15,16 @@
     "vue-router": "^4.4.3"
   },
   "devDependencies": {
+    "@testing-library/vue": "^8.1.0",
     "@types/node": "^22.4.2",
     "@vitejs/plugin-vue": "^5.1.2",
+    "@vitest/browser": "^2.0.5",
+    "@vue/test-utils": "^2.4.6",
+    "playwright": "^1.46.1",
     "sass": "^1.77.8",
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
+    "vitest": "^2.0.5",
     "vue-tsc": "^2.0.29"
   }
 }
