@@ -1,8 +1,7 @@
 <template>
-  <ContentContainer id="page-episode" v-if="activeEpisode">
+  <ContentContainer id="page-episode" v-if="episode">
     <div class="back-container">
-      <RouterLink
-        :to="`/show/${$route.params.showId}?season=${activeEpisode.season}`"
+      <RouterLink :to="`/show/${$route.params.showId}?season=${episode.season}`"
         >Return</RouterLink
       >
     </div>
@@ -12,18 +11,18 @@
       </div>
       <div class="episode-info-container" v-else>
         <div class="episode-image">
-          <picture v-if="activeEpisode.image">
-            <img :src="activeEpisode.image" />
+          <picture v-if="episode.image">
+            <img :src="episode.image" />
           </picture>
           <p class="missing-image" v-else>Missing image</p>
         </div>
         <div class="episode-title">
-          <h1>{{ activeEpisode.name }}</h1>
+          <h1>{{ episode.name }}</h1>
         </div>
         <div class="episode-info">
-          <p>{{ activeEpisode.runtime }} minutes</p>
-          <p>Aired {{ activeEpisode.airdate }}</p>
-          <div v-html="activeEpisode.summary" />
+          <p>{{ episode.runtime }} minutes</p>
+          <p>Aired {{ episode.airdate }}</p>
+          <div class="description" v-html="episode.summary" />
         </div>
       </div>
     </Transition>
@@ -31,7 +30,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, onBeforeMount } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useShowStore } from "@/store";
 import ContentContainer from "@/components/ContentContainer.vue";
@@ -42,28 +41,31 @@ const store = useShowStore();
 
 const loading = ref(false);
 
-const episodeId = parseInt(
-  typeof route.params.episodeId == "string"
-    ? route.params.episodeId
-    : route.params.episodeId[0]
+const routeParamEpisodeId = computed(() =>
+  parseInt(
+    typeof route.params.episodeId == "string"
+      ? route.params.episodeId
+      : route.params.episodeId[0]
+  )
 );
 
-const activeEpisode = computed(() => store.getEpisode(episodeId));
+const episode = computed(() => store.getEpisode(routeParamEpisodeId.value));
 
-const loadEpisode = async () => {
-  // Check if episode exists before requesting
-  if (!store.getEpisode(episodeId)) {
-    loading.value = true;
+watch(
+  routeParamEpisodeId,
+  () => {
+    if (!store.getEpisode(routeParamEpisodeId.value)) {
+      loading.value = true;
 
-    await store.getEpisodeData(episodeId);
-
-    loading.value = false;
+      store.getEpisodeData(routeParamEpisodeId.value).then(() => {
+        loading.value = false;
+      });
+    }
+  },
+  {
+    immediate: true,
   }
-};
-
-onBeforeMount(() => {
-  loadEpisode();
-});
+);
 </script>
 
 <style lang="scss" scoped>
@@ -130,6 +132,7 @@ onBeforeMount(() => {
       }
 
       .missing-image {
+        box-sizing: border-box;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -137,6 +140,8 @@ onBeforeMount(() => {
         border-radius: 8px;
         width: 100%;
         height: 100%;
+        padding: 10px;
+        margin: 0;
       }
     }
 

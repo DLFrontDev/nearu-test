@@ -7,7 +7,7 @@ export type EpisodeApiData = {
   season: number;
   number: number;
   type: string;
-  airdate: string;
+  airdate: string | null;
   airtime: string;
   airstamp: string;
   runtime: number;
@@ -36,7 +36,7 @@ export class Episode {
   season: number;
   number: number;
   type: string;
-  airdate: string;
+  airdate: string | null;
   runtime: number;
   image: string | undefined;
   summary: string;

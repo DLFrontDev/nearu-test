@@ -1,33 +1,31 @@
 <template>
   <ContentContainer id="page-show">
     <Transition name="fade" mode="out-in">
-      <div
-        class="loading-container"
-        v-if="loading.show || (loading.show && loading.season)"
-      >
+      <div class="loading-container" v-if="loading.show && loading.season">
         <Spinner />
       </div>
-      <div class="show-detail" v-else-if="activeShow && activeSeason">
+      <div class="show-detail" v-else-if="show && season">
         <div class="show-info-container">
-          <div class="show-image">
-            <picture>
-              <img :src="activeShow.image" />
+          <div class="show-image-container">
+            <picture v-if="show.image">
+              <img :src="show.image" />
             </picture>
+            <p class="missing-image" v-else>Missing image</p>
           </div>
-          <h1 class="show-title">{{ activeShow.name }}</h1>
+          <h1 class="show-title">{{ show.name }}</h1>
           <div class="show-info">
-            <p>{{ activeShow.type }}</p>
-            <p>
-              Aired from <b>{{ activeShow.premiered }}</b> to
-              <b>{{ activeShow.ended }}</b>
+            <p>{{ show.type }}</p>
+            <p v-if="show.premiered && show.ended">
+              Aired from <b>{{ show.premiered }}</b> to
+              <b>{{ show.ended }}</b>
             </p>
-            <div class="description" v-html="activeShow.summary" />
+            <div class="description" v-html="show.summary" />
           </div>
         </div>
         <div class="season-list-container">
           <h3>Seasons</h3>
           <ul>
-            <li v-for="season in activeShow.seasons">
+            <li v-for="season in show.seasons">
               <button
                 @click="selectedSeason = season.id"
                 :class="{ active: selectedSeason == season.id }"
@@ -36,9 +34,7 @@
               </button>
             </li>
           </ul>
-          <div class="episode-count">
-            {{ activeSeason.episodeOrder }} episodes
-          </div>
+          <div class="episode-count">{{ season.episodeOrder }} episodes</div>
         </div>
         <Transition name="fade" mode="out-in">
           <div class="loading-container" v-if="loading.season">
@@ -52,10 +48,8 @@
               <div class="label-airdate">Air date</div>
             </div>
             <ul>
-              <li v-for="episode in activeEpisodeList">
-                <RouterLink
-                  :to="`/show/${activeShow.id}/episode/${episode.id}`"
-                >
+              <li v-for="episode in episodeList">
+                <RouterLink :to="`/show/${show.id}/episode/${episode.id}`">
                   <div class="episode-number">
                     {{ episode.number || "S" }}
                   </div>
@@ -64,7 +58,7 @@
                   </div>
                   <div class="episode-runtime">{{ episode.runtime }}min</div>
                   <div class="episode-airdate">
-                    {{ convertDate(episode.airdate) }}
+                    {{ episode.airdate }}
                   </div>
                 </RouterLink>
               </li>
@@ -77,12 +71,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, Ref, computed, onBeforeMount, watch } from "vue";
+import { ref, Ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import ContentContainer from "@/components/ContentContainer.vue";
 import Spinner from "@/components/Spinner.vue";
 import { useShowStore } from "@/store";
-import { convertDate } from "@/utils/convertDate";
 
 const route = useRoute();
 const store = useShowStore();
@@ -93,68 +86,54 @@ const loading = ref({
 });
 const selectedSeason: Ref<number | undefined> = ref();
 
-const showId = computed(() =>
+const routeParamShowId = computed(() =>
   parseInt(
     typeof route.params.showId == "string"
       ? route.params.showId
       : route.params.showId[0]
   )
 );
+const routeQuerySeason = computed(() =>
+  route.query.season ? parseInt(route.query.season as string) : undefined
+);
 
-const activeShow = computed(() => store.getShow(showId.value));
+const show = computed(() => store.getShow(routeParamShowId.value));
 
-const activeSeason = computed(() =>
+const season = computed(() =>
   selectedSeason.value ? store.getSeason(selectedSeason.value) : undefined
 );
 
-const activeEpisodeList = computed(() =>
-  activeSeason.value
-    ? store.getSeasonEpisodes(activeSeason.value?.id)
-    : undefined
+const episodeList = computed(() =>
+  season.value ? store.getSeasonEpisodes(season.value?.id) : undefined
 );
 
-const loadShow = async () => {
-  // Check if show exists before requesting
-  if (!store.getShow(showId.value)) {
-    loading.value.show = true;
+watch(
+  routeParamShowId,
+  () => {
+    store.getShowData(routeParamShowId.value).then(() => {
+      loading.value.show = false;
 
-    await store.getShowData(showId.value);
+      const show = store.getShow(routeParamShowId.value);
 
-    loading.value.show = false;
+      // Select season from query when returning from episode
+      selectedSeason.value = routeQuerySeason.value
+        ? show?.seasons.find((s) => s.number == routeQuerySeason.value)?.id
+        : show?.seasons[0].id;
+    });
+  },
+  {
+    immediate: true,
   }
+);
 
-  const show = store.shows.find((s) => s.id == showId.value);
-
-  // Select season from query when returning from episode
-  selectedSeason.value = route.query.season
-    ? show?.seasons.find(
-        (s) => s.number == parseInt(route.query.season as string)
-      )?.id
-    : show?.seasons[0].id;
-};
-
-const loadSeason = () => {
-  // Check if season exists before requesting
-  if (selectedSeason.value && !activeSeason.value?.episodes.length) {
+watch(selectedSeason, () => {
+  if (selectedSeason.value) {
     loading.value.season = true;
 
     store.getSeasonEpisodesData(selectedSeason.value).then(() => {
       loading.value.season = false;
     });
   }
-};
-
-onBeforeMount(() => {
-  loadShow();
-});
-
-// Required for show to show navigation
-watch(showId, () => {
-  loadShow();
-});
-
-watch(selectedSeason, () => {
-  loadSeason();
 });
 </script>
 
@@ -198,7 +177,7 @@ watch(selectedSeason, () => {
       column-gap: 32px;
     }
 
-    .show-image {
+    .show-image-container {
       grid-area: 2 / 1 / 3 / 2;
       display: flex;
       justify-content: center;
@@ -210,6 +189,19 @@ watch(selectedSeason, () => {
       img {
         display: block;
         max-width: 100%;
+      }
+
+      .missing-image {
+        box-sizing: border-box;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid $color-light-grey;
+        border-radius: 8px;
+        width: 100%;
+        height: 100%;
+        padding: 10px;
+        margin: 0;
       }
     }
 

@@ -9,50 +9,74 @@ export const useShowStore = defineStore("show", () => {
   const seasons: Ref<Season[]> = ref([]);
   const episodes: Ref<Episode[]> = ref([]);
 
-  const getShowData = (showId: number) =>
-    fetch(`https://api.tvmaze.com/shows/${showId}?embed=seasons`)
-      .then((response) => response.json())
-      .then((data: ShowApiData) => {
-        shows.value.push(new Show(data));
+  const getShowData = (showId: number) => {
+    const show = getShow(showId);
 
-        data._embedded.seasons.forEach((s) => {
-          if (!seasons.value.find((sR) => sR.id == s.id)) {
-            seasons.value.push(new Season(s));
+    if (!show) {
+      return fetch(`https://api.tvmaze.com/shows/${showId}?embed=seasons`)
+        .then((response) => response.json())
+        .then((data: ShowApiData) => {
+          if (!getShow(data.id)) {
+            shows.value.push(new Show(data));
           }
+
+          data._embedded.seasons.forEach((s) => {
+            if (!getSeason(s.id)) {
+              seasons.value.push(new Season(s));
+            }
+          });
         });
+    }
 
-        return data.id;
-      });
+    // Return resolved promise in case data already exists
+    return Promise.resolve();
+  };
 
-  const getSeasonEpisodesData = (seasonId: number) =>
-    fetch(`https://api.tvmaze.com/seasons/${seasonId}/episodes`)
-      .then((response) => response.json())
-      .then((data: EpisodeApiData[]) => {
-        const season = seasons.value.find((s) => s.id == seasonId);
+  const getSeasonEpisodesData = (seasonId: number) => {
+    const season = getSeason(seasonId);
+    const seasonEpisodes = getSeasonEpisodes(seasonId);
 
-        data.forEach((e) => {
-          if (!episodes.value.find((eR) => eR.id == e.id)) {
-            episodes.value.push(new Episode(e));
-          }
+    // Fetch in case that seasonEpisodes do not exist or are incomplete
+    if (
+      !seasonEpisodes.length ||
+      season?.episodes.length != seasonEpisodes?.length
+    ) {
+      return fetch(`https://api.tvmaze.com/seasons/${seasonId}/episodes`)
+        .then((response) => response.json())
+        .then((data: EpisodeApiData[]) => {
+          const season = getSeason(seasonId);
 
-          if (season) {
-            season.episodes.push(e.id);
-          }
+          data.forEach((e) => {
+            if (!getEpisode(e.id)) {
+              episodes.value.push(new Episode(e));
+            }
+
+            if (season && !season.episodes.includes(e.id)) {
+              season.episodes.push(e.id);
+            }
+          });
         });
-      });
+    }
 
-  const getEpisodeData = (episodeId: number) =>
-    fetch(`https://api.tvmaze.com/episodes/${episodeId}`)
-      .then((response) => response.json())
-      .then((data: EpisodeApiData) => {
-        const episode = new Episode(data);
+    // Return resolved promise in case data already exists
+    return Promise.resolve();
+  };
 
-        if (!episodes.value.find((e) => e.id == episode.id)) {
+  const getEpisodeData = (episodeId: number) => {
+    // Fetch in case that episode does not exist or is incomplete
+    if (!getEpisode(episodeId)) {
+      return fetch(`https://api.tvmaze.com/episodes/${episodeId}`)
+        .then((response) => response.json())
+        .then((data: EpisodeApiData) => {
+          const episode = new Episode(data);
+
           episodes.value.push(episode);
-        }
+        });
+    }
 
-        return episode;
-      });
+    // Return resolved promise in case data already exists
+    return Promise.resolve();
+  };
 
   const getShow = (showId: number) => shows.value.find((s) => s.id == showId);
 
@@ -63,8 +87,10 @@ export const useShowStore = defineStore("show", () => {
     const season = seasons.value.find((s) => s.id == seasonId);
 
     return season
-      ? episodes.value.filter((e) => season.episodes.includes(e.id))
-      : undefined;
+      ? episodes.value
+          .filter((e) => season.episodes.includes(e.id))
+          .sort((a, b) => (a.number ? a.number - b.number : 1))
+      : [];
   };
 
   const getEpisode = (episodeId: number) =>

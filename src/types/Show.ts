@@ -11,8 +11,8 @@ export type ShowApiData = {
   status: string;
   runtime: number;
   averageRuntime: number;
-  premiered: string;
-  ended: string;
+  premiered: string | null;
+  ended: string | null;
   officialSite: null;
   schedule: {
     time: string;
@@ -63,9 +63,9 @@ export class Show {
   id: number;
   name: string;
   type: string;
-  premiered: string;
-  ended: string;
-  image: string;
+  premiered: string | null;
+  ended: string | null;
+  image: string | null;
   summary: string;
   seasons: { id: number; number: number }[];
 
@@ -75,7 +75,7 @@ export class Show {
     this.type = data.type;
     this.premiered = convertDate(data.premiered);
     this.ended = convertDate(data.ended);
-    this.image = data.image.medium;
+    this.image = data.image?.medium;
     this.summary = data.summary;
     this.seasons = data._embedded.seasons.map((s) => ({
       id: s.id,
